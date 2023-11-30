@@ -9,8 +9,8 @@ import urequests
 import json
 from picographics import PicoGraphics, DISPLAY_INKY_PACK
 
-from WIFI import (SSID, PASSWORD)
-from WEATHER_SERVER import LATEST_URL
+from WIFI_CONFIG import (SSID, PASSWORD)
+from WEATHER_CONFIG import LATEST_URL
 
 UPDATE_INTERVAL = 60
 
@@ -67,7 +67,14 @@ def get_weather():
     graphics.text(sensor, 0, 12, scale=1.0)
     graphics.text("%d%% humidity" % d["humidity"], 0, height - 20, scale=1.0)
     graphics.set_thickness(4)
-    graphics.text("%3.1f'C" % d["temp"], 0, 64, scale=2.0)
+    # temp
+    t = "%3.1f" % d["temp"]
+    graphics.text(t, 0, 64, scale=2.0)
+    x = graphics.measure_text(t, scale=2.0)
+    t = "o"
+    graphics.text(t, x, 64 - 18, scale=1.0)
+    x += graphics.measure_text(t, scale=1.0)
+    graphics.text("C", x, 64, scale=2.0)
     graphics.update()
     last_weather = new_weather
 
