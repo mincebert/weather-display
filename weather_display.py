@@ -1,5 +1,7 @@
 # weather_display.py
 
+__version__ = "0.1a1"
+
 import network
 #import socket
 from time import sleep
@@ -83,10 +85,11 @@ graphics.set_font("sans")
 graphics.set_thickness(2)
 
 try:
-    graphics.text("Connecting to Wi-Fi...", 0, 12, scale=0.6)
+    graphics.text("WEATHER DISPLAY " + __version__, 0, 12, scale=0.6)
+    graphics.text("Connecting to Wi-Fi...", 0, 34, scale=0.6)
     graphics.update()
     connect()
-    graphics.text("Fetching weather...", 0, 34, scale=0.6)
+    graphics.text("Fetching weather...", 0, 56, scale=0.6)
     graphics.update()
     while True:
         get_weather(SENSOR_NAME)
