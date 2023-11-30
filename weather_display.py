@@ -13,6 +13,7 @@ from WIFI_CONFIG import (SSID, PASSWORD)
 from WEATHER_CONFIG import LATEST_URL
 
 UPDATE_INTERVAL = 60
+SENSOR_NAME = "Outside"		# temporary until handling multiple sensors
 
 PEN_BLACK = 0
 PEN_WHITE = 15
@@ -37,7 +38,7 @@ def screen_clear():
     graphics.clear()
     graphics.set_pen(PEN_BLACK)
 
-def get_weather():
+def get_weather(sensor):
     global last_weather
     try:
         r = urequests.get(LATEST_URL)
@@ -46,7 +47,6 @@ def get_weather():
         return
     data = r.json()
     #print(data)
-    sensor = "Outside"
     try:
         d = data["sensors"][sensor]
     except KeyError:
@@ -83,13 +83,13 @@ graphics.set_font("sans")
 graphics.set_thickness(2)
 
 try:
-    graphics.text("Connecting to Wi-Fi...", 0, 12, scale=0.5)
+    graphics.text("Connecting to Wi-Fi...", 0, 12, scale=0.6)
     graphics.update()
     connect()
-    graphics.text("Fetching weather...", 0, 28, scale=0.5)
+    graphics.text("Fetching weather...", 0, 34, scale=0.6)
     graphics.update()
     while True:
-        get_weather()
+        get_weather(SENSOR_NAME)
         sleep(UPDATE_INTERVAL)
 except KeyboardInterrupt:
     machine.reset()
