@@ -3,13 +3,12 @@
 __version__ = "0.1a1"
 
 import network
-#import socket
 from time import sleep
-#from picozero import pico_temp_sensor, pico_led
 import machine
 import urequests
 import json
 from picographics import PicoGraphics, DISPLAY_INKY_PACK
+from pimoroni import Button
 
 from WIFI_CONFIG import (SSID, PASSWORD)
 from WEATHER_CONFIG import LATEST_URL
@@ -19,6 +18,12 @@ SENSOR_NAME = "Outside"		# temporary until handling multiple sensors
 
 PEN_BLACK = 0
 PEN_WHITE = 15
+
+
+button_a = Button(12)
+button_b = Button(13)
+button_c = Button(14)
+
 
 graphics = PicoGraphics(DISPLAY_INKY_PACK)
 width, height = graphics.get_bounds()
@@ -91,8 +96,24 @@ try:
     connect()
     graphics.text("Fetching weather...", 0, 56, scale=0.6)
     graphics.update()
+    count = 0
     while True:
+        print("Main loop interation %d" % count)
+
+        if button_a.read() and button_c.read():
+            print("Break using A+C.")
+            break
+
         get_weather(SENSOR_NAME)
-        sleep(UPDATE_INTERVAL)
+        #sleep(UPDATE_INTERVAL)
+        sleep(1)		# need to use async to allow to wait longer
+
+        count += 1
+
 except KeyboardInterrupt:
     machine.reset()
+
+screen_clear()
+graphics.set_thickness(2)
+graphics.text("Break.", 0, 12, scale=0.6)
+graphics.update()
