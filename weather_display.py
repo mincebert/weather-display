@@ -1,6 +1,6 @@
 # weather_display.py
 
-__version__ = "0.1a1"
+__version__ = "0.1a2"
 
 import network
 from time import sleep
@@ -13,7 +13,9 @@ from pimoroni import Button
 from WIFI_CONFIG import (SSID, PASSWORD)
 from WEATHER_CONFIG import LATEST_URL
 
-UPDATE_INTERVAL = 60
+UPDATE_INTERVAL = 5		# number of seconds between updates
+WARNING_FAIL_COUNT = 60 / UPDATE_INTERVAL * 5		# number of updates failed before warning
+
 SENSOR_NAME = "Outside"		# temporary until handling multiple sensors
 
 PEN_BLACK = 0
@@ -58,16 +60,18 @@ def get_weather(sensor):
         d = data["sensors"][sensor]
     except KeyError:
         print("No or missing data")
-        return
+        return False
     print(d)
     try:
         new_weather = { "temp": d["temp"], "humidity": d["humidity"] }
     except KeyError:
         print("Incomplete data")
-        return
+        return False
+
     if last_weather == new_weather:
         print("Same as last - no update")
-        return
+        return True
+
     screen_clear()
     graphics.set_font("sans")
     graphics.set_thickness(2)
@@ -84,6 +88,7 @@ def get_weather(sensor):
     graphics.text("C", x, 64, scale=2.0)
     graphics.update()
     last_weather = new_weather
+    return True
 
 screen_clear()
 graphics.set_font("sans")
@@ -96,7 +101,9 @@ try:
     connect()
     graphics.text("Fetching weather...", 0, 56, scale=0.6)
     graphics.update()
+
     count = 0
+    fail_count = 0
     while True:
         print("Main loop interation %d" % count)
 
@@ -104,9 +111,15 @@ try:
             print("Break using A+C.")
             break
 
-        get_weather(SENSOR_NAME)
-        #sleep(UPDATE_INTERVAL)
-        sleep(1)		# need to use async to allow to wait longer
+        if get_weather(SENSOR_NAME):
+            fail_count = 0
+        elif fail_count < WARNING_FAIL_COUNT:
+            fail_count += 1
+            if fail_count >= WARNING_FAIL_COUNT:
+                graphics.text("<!>", 240, 14, scale=1.0)
+                graphics.update()
+
+        sleep(UPDATE_INTERVAL)
 
         count += 1
 
