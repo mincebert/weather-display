@@ -100,7 +100,7 @@ def get_weather(sensor):
         return ERROR_DATA
 
     # data is older than what is acceptable
-    if d["age"] > MAX_AGE:
+    if d.get("age", 0) > MAX_AGE:
         print("Data has expired")
         last_weather = None
         return ERROR_AGE
