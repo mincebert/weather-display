@@ -1,6 +1,6 @@
 # weather_display.py
 
-__version__ = "0.1a3"
+__version__ = "0.1a4"
 
 import network
 from time import sleep
@@ -139,57 +139,64 @@ def display_error(e):
     graphics.update()
 
 
-print("*** WEATHER DISPLAY", __version__, "***")
-
-screen_clear()
-graphics.set_font("sans")
-graphics.set_thickness(2)
-
-try:
-    # display boot up messages
-    graphics.text("WEATHER DISPLAY " + __version__, 0, 12, scale=0.6)
+def main_loop():
     graphics.text("Connecting to Wi-Fi...", 0, 34, scale=0.6)
     graphics.update()
     connect()
     graphics.text("Fetching weather...", 0, 56, scale=0.6)
     graphics.update()
 
-    count = 0
-    fail_count = 0
-    while True:
-        print("Main loop interation %d" % count)
+    try:
+        count = 0
+        fail_count = 0
+        while True:
+            print("Main loop interation %d" % count)
 
-        if button_a.read() and button_c.read():
-            print("Break using A+C.")
-            break
+            if button_a.read() and button_c.read():
+                print("Break using A+C.")
+                break
 
-        # try to get the weather
-        status = get_weather(SENSOR_NAME)
-        if status == ERROR_OK:
-            # successful - reset failure count
-            fail_count = 0
+            # try to get the weather
+            status = get_weather(SENSOR_NAME)
+            if status == ERROR_OK:
+                # successful - reset failure count
+                fail_count = 0
 
-        elif status == ERROR_SERVER and fail_count < WARNING_FAIL_COUNT:
-            # unable to connect to server and we aren't already at the
-            # warning threshold - increase the failure count
-            fail_count += 1
+            elif status == ERROR_SERVER and fail_count < WARNING_FAIL_COUNT:
+                # unable to connect to server and we aren't already at the
+                # warning threshold - increase the failure count
+                fail_count += 1
 
-            # if we've now hit the warning threshold, display that
-            if fail_count >= WARNING_FAIL_COUNT:
-                display_error(ERROR_MSGS[ERROR_SERVER])
+                # if we've now hit the warning threshold, display that
+                if fail_count >= WARNING_FAIL_COUNT:
+                    display_error(ERROR_MSGS[ERROR_SERVER])
 
-        else:
-            # some other type of error
-            display_error(ERROR_MSGS.get(status, ERROR_UNKNOWN))
+            else:
+                # some other type of error
+                display_error(ERROR_MSGS.get(status, ERROR_UNKNOWN))
 
-        sleep(UPDATE_INTERVAL)
+            sleep(UPDATE_INTERVAL)
 
-        count += 1
+            count += 1
 
-except KeyboardInterrupt:
-    machine.reset()
+    except KeyboardInterrupt:
+        machine.reset()
+
+
+print("*** WEATHER DISPLAY", __version__, "***")
+
+screen_clear()
+graphics.set_font("sans")
+graphics.set_thickness(2)
+graphics.text("WEATHER DISPLAY " + __version__, 0, 12, scale=0.6)
+
+# prevent startup if A+C are pressed
+if button_a.read() and button_c.read():
+    print("Break using A+C.")
+else:
+    main_loop()
 
 screen_clear()
 graphics.set_thickness(2)
-graphics.text("Break.", 0, 12, scale=0.6)
+graphics.text("Stopped.", 0, 12, scale=0.6)
 graphics.update()
