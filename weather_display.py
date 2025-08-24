@@ -140,10 +140,6 @@ def connect():
         t += 1
     print("Connected!", wlan.ifconfig())
 
-def screen_clear():
-    graphics.set_pen(PEN_WHITE)
-    graphics.clear()
-    graphics.set_pen(PEN_BLACK)
 
 def get_weather(sensor):
     global last_weather
@@ -204,12 +200,10 @@ def get_weather(sensor):
 
 def display_error(e):
     "Display an error message."
-    screen_clear()
-    graphics.set_thickness(4)
-    graphics.text("ERROR!", 0, 14, scale=1.0)
-    graphics.set_thickness(2)
-    graphics.text(e, 0, 50, scale=0.8)
-    graphics.update()
+    display.clear()
+    display.add_line("ERROR!")
+    display.add_line(e)
+    display.update()
 
 
 def main_loop():
