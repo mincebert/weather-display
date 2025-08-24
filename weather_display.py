@@ -115,10 +115,12 @@ class Display:
 
         graphics.update()
 
-        self._last_data = self._data
+        self._last_data = self._data.copy()
+        if "lines" in self._last_data:
+            self._last_data["lines"] = self._data["lines"].copy()
 
     def add_line(self, s):
-        l = self._data.setdefault("lines", []).append(s)
+        self._data.setdefault("lines", []).append(s)
 
     def set_location(self, s):
         self._data["location"] = s
