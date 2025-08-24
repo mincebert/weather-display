@@ -223,9 +223,13 @@ def main_loop():
         while True:
             print("Main loop interation %d" % count)
 
+            # if buttons A+C are pressed, stop
             if button_a.read() and button_c.read():
-                print("Break using A+C.")
-                break
+                print("Break on A+C.")
+                display.clear()
+                display.add_line("Break on A+C.")
+                display.update()
+                machine.reset()
 
             # try to get the weather
             status = get_weather(SENSOR_NAME)
@@ -251,6 +255,10 @@ def main_loop():
             count += 1
 
     except KeyboardInterrupt:
+        print("Break on console")
+        display.clear()
+        display.add_line("Break on console")
+        display.update()
         machine.reset()
 
 
