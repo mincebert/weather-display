@@ -79,8 +79,10 @@ class Display:
         graphics.set_pen(PEN_BLACK)
         
         if "lines" in self._data:
-            for n, s in self._data["lines"].items():
-                graphics.text(s, 0, 12 + n * 22, scale=0.6)
+            y = 12
+            for s in self._data["lines"]:
+                graphics.text(s, 0, y, scale=0.6)
+                y += 22
 
         s = self._data.get("location")
         if s:
@@ -109,8 +111,8 @@ class Display:
 
         graphics.update()
 
-    def set_line(self, n, s):
-        self._data.setdefault("lines", {})[n] = s
+    def add_line(self, s):
+        l = self._data.setdefault("lines", []).append(s)
 
     def set_location(self, s):
         self._data["location"] = s
@@ -213,14 +215,14 @@ def display_error(e):
 def main_loop():
     display.clear()
 
-    display.set_line(0, "WEATHER DISPLAY " + __version__)
+    display.add_line("WEATHER DISPLAY " + __version__)
     display.update()
 
-    display.set_line(1, "Connecting to Wi-Fi...")
+    display.add_line("Connecting to Wi-Fi...")
     display.update()
     connect()
 
-    display.set_line(2, "Fetching weather...")
+    display.add_line("Fetching weather...")
     display.update()
 
     try:
@@ -268,7 +270,6 @@ if button_a.read() and button_c.read():
 else:
     main_loop()
 
-screen_clear()
-graphics.set_thickness(2)
-graphics.text("Stopped.", 0, 12, scale=0.6)
-graphics.update()
+display.clear()
+display.add_line("Stopped")
+display.update()
