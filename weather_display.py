@@ -29,6 +29,9 @@ SENSOR_NAME = "Outside"
 PEN_BLACK = 0
 PEN_WHITE = 15
 
+# number of seconds before restarting after an exception
+RESTART_DELAY = 5
+
 # return codes from get_weather()
 ERROR_OK = 0
 ERROR_SERVER = 1
@@ -68,9 +71,12 @@ class Display:
         self._data = {}
 
     def update(self):
-        if self._last_data is not None and self._data == self._last_data:
+        # abort if display is the same as last update()
+        if (self._last_data is not None) and (self._data == self._last_data):
             print("Display same as last time - skip update")
             return
+
+        # display has changed - render it and display
 
         graphics.set_pen(PEN_WHITE)
         graphics.clear()
@@ -157,7 +163,7 @@ def get_weather(sensor):
     except KeyError:
         print("No or missing data")
         return ERROR_DATA
-    print(d)
+    print(data["datetime"], d)
 
     # try to find the required data for the sensor
     try:
@@ -203,6 +209,7 @@ def main_loop():
 
     display.add_line("Connecting to Wi-Fi...")
     display.update()
+
     connect()
 
     display.add_line("Fetching weather...")
@@ -248,10 +255,21 @@ def main_loop():
 print("*** WEATHER DISPLAY", __version__, "***")
 
 # prevent startup if A+C are pressed
-if button_a.read() and button_c.read():
-    print("Break using A+C.")
+while not (button_a.read() and button_c.read()):
+    try:
+        main_loop()
+    except Exception as e:
+        print(f"Exception - restarting in {RESTART_DELAY}s...")
+        print(str(e))
+
+        display.clear()
+        display.add_line(f"Exception - restarting in {RESTART_DELAY}s...")
+        display.add_line(str(e))
+        display.update()
+
+        sleep(5)
 else:
-    main_loop()
+    print("Break using A+C.")
 
 display.clear()
 display.add_line("Stopped")
