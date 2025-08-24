@@ -52,10 +52,8 @@ button_c = Button(14)
 
 graphics = PicoGraphics(DISPLAY_INKY_PACK)
 width, height = graphics.get_bounds()
+
 graphics.set_update_speed(2)
-
-last_weather = None
-
 graphics.set_font("sans")
 graphics.set_thickness(2)
 
@@ -111,6 +109,8 @@ class Display:
 
         graphics.update()
 
+        self._last_data = self._data
+
     def add_line(self, s):
         l = self._data.setdefault("lines", []).append(s)
 
@@ -142,14 +142,11 @@ def connect():
 
 
 def get_weather(sensor):
-    global last_weather
-
     # try to get the current weather from the server
     try:
         r = urequests.get(LATEST_URL)
     except OSError:
         print("Error connecting to server")
-        last_weather = None
         return ERROR_SERVER
     data = r.json()
     #print(data)
@@ -159,27 +156,20 @@ def get_weather(sensor):
         d = data["sensors"][sensor]
     except KeyError:
         print("No or missing data")
-        last_weather = None
         return ERROR_DATA
     print(d)
 
     # try to find the required data for the sensor
     try:
-        new_weather = { "temp": d["temp"], "humidity": d["humidity"] }
+        weather = { "temp": d["temp"], "humidity": d["humidity"] }
     except KeyError:
         print("Incomplete data")
-        last_weather = None
         return ERROR_DATA
 
     # data is older than what is acceptable
     if d.get("age", 0) > MAX_AGE:
         print("Data has expired")
-        last_weather = None
         return ERROR_AGE
-
-    if last_weather == new_weather:
-        print("Same as last - no update")
-        return ERROR_OK
 
     m = re.search("T(\d\d):(\d\d)", data["datetime"])
     hour, min = m.groups()
@@ -194,7 +184,6 @@ def get_weather(sensor):
     display.set_time(f"{hour}:{min}")
     display.update()
 
-    last_weather = new_weather
     return ERROR_OK
 
 
