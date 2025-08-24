@@ -1,10 +1,11 @@
 # weather_display.py
 
-__version__ = "0.1a4"
+__version__ = "0.2a1"
 
 import network
 from time import sleep
 import machine
+import re
 import urequests
 from picographics import PicoGraphics, DISPLAY_INKY_PACK
 from pimoroni import Button
@@ -17,10 +18,10 @@ from WEATHER_CONFIG import LATEST_URL
 UPDATE_INTERVAL = 5
 
 # maximum age for data before we warn that it's stuck (s)
-MAX_AGE = 60 * 5    # 5 minutes
+MAX_AGE = 60 * 5    # = 5 minutes
 
 # number of updates failed before warning
-WARNING_FAIL_COUNT = 60 / UPDATE_INTERVAL * 5   # 5 minutes
+WARNING_FAIL_COUNT = 60 / UPDATE_INTERVAL * 5   # = 5 minutes
 
 # temporary until handling multiple sensors
 SENSOR_NAME = "Outside"
@@ -55,13 +56,86 @@ graphics.set_update_speed(2)
 
 last_weather = None
 
+graphics.set_font("sans")
+graphics.set_thickness(2)
+
+
+class Display:
+    def __init__(self):
+        super().__init__()
+        self.clear()
+        self._last_data = None
+
+    def clear(self):
+        self._data = {}
+
+    def update(self):
+        if self._last_data is not None and self._data == self._last_data:
+            print("Display same as last time - skip update")
+            return
+
+        graphics.set_pen(PEN_WHITE)
+        graphics.clear()
+        graphics.set_pen(PEN_BLACK)
+        
+        if "lines" in self._data:
+            for n, s in self._data["lines"].items():
+                graphics.text(s, 0, 12 + n * 22, scale=0.6)
+
+        s = self._data.get("location")
+        if s:
+            graphics.set_thickness(2)
+            graphics.text(s, 0, 12, scale=1.0)
+
+        s = self._data.get("humidity")
+        if s:
+            graphics.set_thickness(2)
+            graphics.text(s, 0, height - 20, scale=1.0)
+
+        if self._data.get("temp"):
+            num, degree, unit = self._data["temp"]
+            graphics.set_thickness(4)
+            # temp <num><o=degree><unit>
+            graphics.text(num, 0, 64, scale=2.0)
+            x = graphics.measure_text(num, scale=2.0)
+            graphics.text(degree, x, 64 - 18, scale=1.0)
+            x += graphics.measure_text(degree, scale=1.0)
+            graphics.text(unit, x, 64, scale=2.0)
+
+        s = self._data.get("time")
+        if s:
+            graphics.set_thickness(2)
+            graphics.text(s, width - graphics.measure_text(s, scale=0.6), 12, scale=0.6)
+
+        graphics.update()
+
+    def set_line(self, n, s):
+        self._data.setdefault("lines", {})[n] = s
+
+    def set_location(self, s):
+        self._data["location"] = s
+
+    def set_humidity(self, s):
+        self._data["humidity"] = s
+
+    def set_temp(self, num, degree, unit):
+        self._data["temp"] = (num, degree, unit)
+
+    def set_time(self, t):
+        self._data["time"] = t
+
+display = Display()
+
+
 def connect():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.connect(SSID, PASSWORD)
+    t = 0
     while wlan.isconnected() == False:
-        print("Waiting for wi-fi connection...")
+        print(f"Connecting to Wi-Fi ({t}s)...")
         sleep(1)
+        t += 1
     print("Connected!", wlan.ifconfig())
 
 def screen_clear():
@@ -109,22 +183,19 @@ def get_weather(sensor):
         print("Same as last - no update")
         return ERROR_OK
 
+    m = re.search("T(\d\d):(\d\d)", data["datetime"])
+    hour, min = m.groups()
+
     # display the new weather
-    screen_clear()
-    graphics.set_thickness(2)
-    graphics.text(sensor, 0, 12, scale=1.0)
-    graphics.text(
-        "%d%% humidity" % d["humidity"], 0, height - 20, scale=1.0)
-    graphics.set_thickness(4)
-    # temp <num><o=degree>C
-    t = "%3.1f" % d["temp"]
-    graphics.text(t, 0, 64, scale=2.0)
-    x = graphics.measure_text(t, scale=2.0)
-    t = "o"
-    graphics.text(t, x, 64 - 18, scale=1.0)
-    x += graphics.measure_text(t, scale=1.0)
-    graphics.text("C", x, 64, scale=2.0)
-    graphics.update()
+    display.clear()
+    display.set_location(sensor)
+    
+    display.set_humidity("%d%% humidity" % d["humidity"])
+    display.set_temp("%3.1f" % d["temp"], 'o', 'C')
+
+    display.set_time(f"{hour}:{min}")
+    display.update()
+
     last_weather = new_weather
     return ERROR_OK
 
@@ -140,11 +211,17 @@ def display_error(e):
 
 
 def main_loop():
-    graphics.text("Connecting to Wi-Fi...", 0, 34, scale=0.6)
-    graphics.update()
+    display.clear()
+
+    display.set_line(0, "WEATHER DISPLAY " + __version__)
+    display.update()
+
+    display.set_line(1, "Connecting to Wi-Fi...")
+    display.update()
     connect()
-    graphics.text("Fetching weather...", 0, 56, scale=0.6)
-    graphics.update()
+
+    display.set_line(2, "Fetching weather...")
+    display.update()
 
     try:
         count = 0
@@ -184,11 +261,6 @@ def main_loop():
 
 
 print("*** WEATHER DISPLAY", __version__, "***")
-
-screen_clear()
-graphics.set_font("sans")
-graphics.set_thickness(2)
-graphics.text("WEATHER DISPLAY " + __version__, 0, 12, scale=0.6)
 
 # prevent startup if A+C are pressed
 if button_a.read() and button_c.read():
